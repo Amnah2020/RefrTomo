@@ -23,14 +23,14 @@ def survey_geom_observed(srcs, recs, tobs, minoffset=0):
     return survey
 
 
-def survey_raytrace(survey, vel, x, z, lmax, nl, thetas, dzout=.1, ray_rec_mindistance=1.):
+def survey_raytrace(survey, vel, x, z, lmax, nl, thetas, dzout=.1, ray_rec_mindistance=1., debug=False):
     dx, dz = x[1] - x[0], z[1] - z[0]
     
     avasurvey = []
     for s in survey:
         src = s.src
         # Raytrace
-        rays, rays_turning, thetas_turning = raytrace(vel, x, z, dx, dz, lmax, nl, src, thetas, dzout=.1)
+        rays, rays_turning, thetas_turning = raytrace(vel, x, z, dx, dz, lmax, nl, src, thetas, dzout=.1, debug=False)
 
         for rec in s.rec.T:
             rays_endx = np.array([ray[-1, 0] for ray in rays_turning])
@@ -38,7 +38,9 @@ def survey_raytrace(survey, vel, x, z, lmax, nl, thetas, dzout=.1, ray_rec_mindi
             ray_rec_distance = rays_endx[iray] - rec[0]
             if np.abs(ray_rec_distance) < ray_rec_mindistance:
                 avasurvey.append(Ray(src, rec, tobs=rays_turning[iray][-1, -1], ray=rays_turning[iray][:, :2]))
-                
+    if debug: 
+        nsr = np.sum([s.rec.shape[1] for s in survey])
+        print(f'survey_raytrace: {nsr} Source-receiver pairs in survey, {len(avasurvey)} Source-receiver paired with ray...') 
     return avasurvey
 
 
@@ -47,7 +49,7 @@ def extract_tobs(survey):
     return tobs
 
 
-def match_surveys(survey1, survey2):
+def match_surveys(survey1, survey2, debug=False):
     survey1matched = []
     survey2matched = []
     
@@ -60,6 +62,9 @@ def match_surveys(survey1, survey2):
         if srcrec in survey1_srcrec:
             survey1matched.append(survey1[survey1_srcrec.index(srcrec)])
             survey2matched.append(survey2[iray])
+    if debug: 
+        print(f'match_surveys: {len(survey1)} Rays in survey1, {len(survey2)} Rays in survey2, {len(survey1matched)} Matched rays...')
+    
     return survey1matched, survey2matched
 
 

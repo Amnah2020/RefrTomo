@@ -19,7 +19,7 @@ The following notebooks are provided:
 - :orange_book: ``RefrTomo.ipynb``: notebook performing refraction tomographic of a portion of synthetic Marmousi model;
 - :orange_book: ``RefrTomo_minimal.ipynb``: notebook performing refraction tomographic of a portion of synthetic Marmousi model (minimal number of steps);
 - :orange_book: ``RefrTomo_Stryde.ipynb``: notebook performing refraction tomographic of a small refraction dataset acquired with Stryde sensors in KAUST.
-
+- :orange_book: ``RefrTomo_Strydeminimal.ipynb``: notebook performing refraction tomographic of a small refraction dataset acquired with Stryde sensors in KAUST (minimal number of steps).
 
 
 ## Getting started :space_invader: :robot:
@@ -43,10 +43,8 @@ Remember to always activate the environment by typing:
 conda activate refrtomo
 ```
 
-Finally, to run tests simply type:
-```
-pytest
-```
 
-**Disclaimer:** All experiments have been carried on a Intel(R) Xeon(R) CPU @ 2.10GHz equipped with a single NVIDIA GEForce RTX 3090 GPU. Different environment 
-configurations may be required for different combinations of workstation and GPU.
+## Improvements :point_up:
+
+- [ ] Create routine that takes two rays reaching the surface and recursively interpolates a ray in the middle until a given distance from a surface point of interest (to be used to take the two closest rays on either side of a receiver, which are however above the allowed threshold, and find one in the middle below this threshold);
+

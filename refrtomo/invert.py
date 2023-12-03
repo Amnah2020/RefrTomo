@@ -1,7 +1,9 @@
+import time
 import numpy as np
 
 from scipy.sparse.linalg import LinearOperator as spLinearOperator
 from pylops.basicoperators import *
+from refrtomo.gaussnewton import gauss_newton
 from refrtomo.raytrace import raytrace
 from refrtomo.survey import *
 from refrtomo.tomomatrix import *
@@ -33,7 +35,9 @@ class RefrTomo:
         self.Lop = Laplacian(self.dims, weights=weightsL)
         
     def fun(self, x):
-        if self.debug: print('fun: Computing...')
+        if self.debug: 
+            tin = time.time()
+            print('RefrTomo-fun: Computing...')
             
         # Save most recent x
         self.xold = x.copy()
@@ -41,31 +45,37 @@ class RefrTomo:
         # Reshape x into a velocity model
         vel = 1. / x.reshape(self.dims)
         
-        plt.figure(figsize=(10,5))
-        im = plt.imshow(vel.T, cmap='jet', vmin=1800, vmax=3000)
-        plt.axis('tight')
-        plt.xlabel('x [m]'),plt.ylabel('y [m]')
-        
+        if self.debug:
+            plt.figure(figsize=(15, 3))
+            plt.imshow(vel.T, cmap='jet')
+            plt.axis('tight')
+            plt.xlabel('x [m]'),plt.ylabel('y [m]')
+
         # Raytrace in velocity model
         invsurvey = survey_raytrace(self.survey, vel.T, self.x, self.z, self.lmax, self.nl, 
                                     self.thetas, dzout=self.dzout, 
-                                    ray_rec_mindistance=self.ray_rec_mindistance)
+                                    ray_rec_mindistance=self.ray_rec_mindistance, debug=self.debug)
 
         # Match surveys
-        surveydata_matched, invsurvey_matched = match_surveys(self.surveydata, invsurvey)
+        surveydata_matched, invsurvey_matched = match_surveys(self.surveydata, invsurvey, debug=self.debug)
         
         # Tomographic matrix and traveltimes
         Rinv = tomographic_matrix(invsurvey_matched, self.dx, self.dz, 0, 0, self.nx, self.nz, 
-                                  self.x, self.z, plotflag=True, vel=vel)
+                                  self.x, self.z, debug=self.debug, plotflag=self.debug, vel=vel)
         tobs = extract_tobs(surveydata_matched)
         
         # Add smoothing regularization term
-        Rinv = VStack([MatrixMult(Rinv), self.epsL * self.Lop]).todense()
+        Rinv = VStack([MatrixMult(Rinv), self.epsL * self.Lop])
         self.Rinvold = Rinv
         
         # Add smoothing regularization term
+        ntobs = len(tobs)
         tobs = np.pad(tobs, (0, self.nx*self.nz))
         tinv = Rinv @ x
+        if self.debug: 
+            tend = time.time()
+            print(f'RefrTomo-fun: Misfit {np.linalg.norm(tobs[:ntobs] - tinv[:ntobs]) / ntobs:.4f}')
+            print(f'RefrTomo-fun: Elapsed time {tend-tin} s...')
         
         if not self.returnJ:
             return tobs - tinv
@@ -75,10 +85,10 @@ class RefrTomo:
     def jacobian(self, x):
         if self.xold is not None and np.allclose(x, self.xold):
             # use Jacobian already computed in fun
-            if self.debug: print('jacobian: Use stored Jacobian')
+            if self.debug: print('RefrTomo-jacobian: Use stored Jacobian')
             return self.Rinvold
         else:
-            if self.debug: print('jacobian: Recompute Jacobian')
+            if self.debug: print('RefrTomo-jacobian: Recompute Jacobian')
             
             # Reshape x into a velocity model
             vel = 1. / x.reshape(self.dims)
@@ -93,9 +103,19 @@ class RefrTomo:
 
             # Tomographic matrix and traveltimes
             Rinv = tomographic_matrix(invsurvey_matched, self.dx, self.dz, 0, 0, self.nx, self.nz, 
-                                      self.x, self.z, plotflag=debug, vel=vel)
+                                      self.x, self.z, plotflag=self.debug, vel=vel)
 
             # Add smoothing regularization term
-            Rinv = VStack([MatrixMult(Rinv), self.epsL * self.Lop]).todense()
+            Rinv = VStack([MatrixMult(Rinv), self.epsL * self.Lop])
             
             return Rinv
+        
+    def solve(self, v0, niter, lsqr_args={}):
+        s0 = 1./v0.ravel()
+        tin = time.time()
+        sinv, misfit = gauss_newton(self.fun, s0, niter, lsqr_args=lsqr_args)
+        tend = time.time()
+        vinv= 1. / (sinv.reshape(self.dims) + 1e-10)
+        print(f'Elapsed time: {tend-tin} sec')
+        return vinv, misfit
+        

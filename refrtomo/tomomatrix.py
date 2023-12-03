@@ -217,7 +217,8 @@ def raytrace_straight(s, r, dx, dz, ox, oz, nx, nz, x, z):
         return _raytrace_generic(r, s, dx, dz, ox, oz, nx, nz, x, z)
 
     
-def tomographic_matrix(survey, dx, dz, ox, oz, nx, nz, x, z, plotflag=False, vel=None):
+def tomographic_matrix(survey, dx, dz, ox, oz, nx, nz, x, z, 
+                       debug=False, plotflag=False, vel=None, figsize=(15, 3)):
     """Tomographich matrix
 
     Compute set of rays and associated tomographic matrix
@@ -253,15 +254,24 @@ def tomographic_matrix(survey, dx, dz, ox, oz, nx, nz, x, z, plotflag=False, vel
         Tomographic sparse matrix
 
     """
-    R = []
-    for ray in survey:
-        R_ = [raytrace_straight(ray.ray[i], ray.ray[i+1], dx, dz, 0., 0., nx, nz, x, z)[0] 
-             for i in range(ray.ray.shape[0]-1)]
-        R.append(np.sum(R_, axis=0))
-    R = np.vstack(R)
-    
+    #R = []
+    rows = []
+    cols = []
+    v = []
+    for iray, ray in enumerate(survey):
+        R_ = [raytrace_straight(ray.ray[i], ray.ray[i+1], dx, dz, 0., 0., nx, nz, x, z)[1:]
+              for i in range(ray.ray.shape[0]-1)]
+        ctmp, vtmp = np.hstack([r[0] for r in R_]), np.hstack([r[1] for r in R_])
+        #R.append(np.sum([r[0] for r in R_], axis=0))
+        rows.append(iray * np.ones_like(ctmp))
+        cols.append(ctmp)
+        v.append(vtmp)
+    #R = np.vstack(R)
+    R = csc_matrix((np.hstack(v), (np.hstack(rows), np.hstack(cols))), shape=(len(v), nx * nz))  
+    if debug: print(f'tomographic_matrix: {R.shape[0]} rows, {R.shape[1]} columns')
+  
     if plotflag:
-        plt.figure(figsize=(15, 6))
+        plt.figure(figsize=figsize)
         plt.imshow(vel.T, cmap='jet', extent =(x[0], x[-1], z[-1], z[0]))
 
         for ray in survey:
@@ -270,8 +280,8 @@ def tomographic_matrix(survey, dx, dz, ox, oz, nx, nz, x, z, plotflag=False, vel
             plt.scatter(ray.rec[0], ray.rec[1], marker='v', s=200, c='w', edgecolors='k')
             plt.axis('tight');
         
-        Rcove = np.sum(R, axis=0).reshape(nx, nz).T
-        plt.figure(figsize=(15, 6))
+        Rcove = np.sum(R.toarray(), axis=0).reshape(nx, nz).T
+        plt.figure(figsize=figsize)
         plt.imshow(Rcove, vmin=0, vmax=0.1*Rcove.max(), extent=(x[0], x[-1], z[-1], z[0]))
         plt.axis('tight')
         plt.title('Ray coverage')

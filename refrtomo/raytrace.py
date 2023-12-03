@@ -56,7 +56,7 @@ def rhsf(l, r, slowness, dsdx, dsdz, xaxis, zaxis, dx, dz):
     return drdt
 
 
-def raytrace(vel, xaxis, zaxis, dx, dz, lmax, nl, source, thetas, dzout=1.):
+def raytrace(vel, xaxis, zaxis, dx, dz, lmax, nl, source, thetas, dzout=1., debug=False):
     """Raytracing for multiple rays defined by the initial conditions (source, thetas)
     
     Parameters
@@ -79,6 +79,11 @@ def raytrace(vel, xaxis, zaxis, dx, dz, lmax, nl, source, thetas, dzout=1.):
         Source location
     thetas : tuple
         Take-off angles
+    dzout : float, optional
+        Additional step in negative z-direction for event_top 
+        (to ensure z=0 is crossed)
+    debug : bool, optional
+        Debug prints
     
     """
     # Events
@@ -148,4 +153,5 @@ def raytrace(vel, xaxis, zaxis, dx, dz, lmax, nl, source, thetas, dzout=1.):
             rays_turning.append(ray)
             thetas_turning.append(thetas[iray])
     
+    if debug: print(f'raytrace: {len(rays)} Shot rays, {len(rays_turning)} Turning rays...')
     return rays, rays_turning, thetas_turning
