@@ -1,4 +1,4 @@
-# Refraction Tomography
+# RefrTomo
 
 This library contains all the required building blocks to peform 2D turning ray tomography and associated examples codes.
 
@@ -18,8 +18,11 @@ The following notebooks are provided:
 - :orange_book: ``Rayshooting_Stryde.ipynb``: notebook testing raytracer and tomographic matrix engine with small refraction dataset acquired with Stryde sensors in KAUST;
 - :orange_book: ``RefrTomo.ipynb``: notebook performing refraction tomographic of a portion of synthetic Marmousi model;
 - :orange_book: ``RefrTomo_minimal.ipynb``: notebook performing refraction tomographic of a portion of synthetic Marmousi model (minimal number of steps);
+- :orange_book: ``FirstArrivalPicking_Stryde.ipynb``: notebook performing automated first arrival picking of a small refraction dataset acquired with Stryde sensors in KAUST;
 - :orange_book: ``RefrTomo_Stryde.ipynb``: notebook performing refraction tomographic of a small refraction dataset acquired with Stryde sensors in KAUST.
 - :orange_book: ``RefrTomo_Strydeminimal.ipynb``: notebook performing refraction tomographic of a small refraction dataset acquired with Stryde sensors in KAUST (minimal number of steps).
+
+
 
 
 ## Getting started :space_invader: :robot:
