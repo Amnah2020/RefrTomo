@@ -1,4 +1,4 @@
-# RefrTomo
+![HTracker](https://github.com/DIG-Kaust/RefrTomo/blob/main/logo.png)
 
 This library contains all the required building blocks to peform 2D turning ray tomography and associated examples codes.
 
