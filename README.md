@@ -51,3 +51,6 @@ conda activate refrtomo
 
 - [ ] Create routine that takes two rays reaching the surface and recursively interpolates a ray in the middle until a given distance from a surface point of interest (to be used to take the two closest rays on either side of a receiver, which are however above the allowed threshold, and find one in the middle below this threshold);
 
+- [ ] Finalize inversion routines using ``scipy.optimize.least_squares`` (currently the Levenberg-Marquardt cannot be used with non-dense Jacobians and the trust-region methods do not seem to converge as nicely as our Gauss-Newton);
+
+- [ ] Add directional smoothing constraints.
