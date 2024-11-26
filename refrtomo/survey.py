@@ -23,7 +23,7 @@ def survey_geom_observed(srcs, recs, tobs, minoffset=0):
     return survey
 
 
-def survey_raytrace(survey, vel, x, z, lmax, nl, thetas, dzout=.1, ray_rec_mindistance=1., debug=False, tolerance_y = 20):
+def survey_raytrace(survey, vel, x, z, lmax, nl, thetas, dzout=.1, ray_rec_mindistance=1., debug=False, tolerance_z=1.):
     dx, dz = x[1] - x[0], z[1] - z[0]
     
     avasurvey = []
@@ -41,17 +41,11 @@ def survey_raytrace(survey, vel, x, z, lmax, nl, thetas, dzout=.1, ray_rec_mindi
                     avasurvey.append(Ray(src, rec, tobs=rays_turning[iray][-1, -1], ray=rays_turning[iray][:, :2]))
             else:
                 ray_trunc = []
-                # for ray in rays_turning:
-                    # y_rec_ray = np.abs(ray[:, 1] - rec[1]) <= tolerance_y
-                    # if len(np.where(y_rec_ray)[0]) > 0:
-                    #     ray_trunc_idx = np.where(y_rec_ray)[0][-1]
-                    #     ray_trunc.append(ray[:ray_trunc_idx, :])
                 for ray in rays_turning:
-                    # Find the largest index where y-coordinate is close to rec[1]
-                    y_rec_ray = np.abs(ray[:, 1] - rec[1]) <= tolerance_y  # Boolean array
-                    if len(np.where(y_rec_ray)[0]) > 0:  # Ensure there are valid indices
-                        ray_y_idx = np.where(y_rec_ray)[0][-1]  # Largest index satisfying condition
-                        ray_trunc.append(ray[:ray_y_idx + 1, :])  # Include this point in truncation
+                    z_rec_ray = np.abs(ray[:, 1] - rec[1]) <= tolerance_z
+                    if len(np.where(z_rec_ray)[0]) > 0:
+                        ray_trunc_idx = np.where(z_rec_ray)[0][-1]
+                        ray_trunc.append(ray[:ray_trunc_idx + 1, :])
 
                 rays_endx = np.array([ray[-1, 0] for ray in ray_trunc])
                 iray = np.argmin(np.abs(rays_endx - rec[0]))

@@ -36,10 +36,10 @@ def _raytrace_vertical(s, r, dx, dz, ox, oz, nx, nz, x, z):
     c : :obj:`np.ndarray`
         Column indices (index of grid cells)
     v : :obj:`np.ndarray`
-        Value (lenght of rays in grid cells)
+        Value (length of rays in grid cells)
 
     """
-    # Define x-index and extreme z-indeces of ray
+    # Define x-index and extreme z-indexes of ray
     xray, zray = s[0], s[1]
     ix = int((xray + dx // 2 - x[0]) // dx)
     izin = int((zray + dz // 2 - z[0]) // dz)
@@ -93,10 +93,10 @@ def _raytrace_generic(s, r, dx, dz, ox, oz, nx, nz, x, z):
     c : :obj:`np.ndarray`
         Column indices (index of grid cells)
     v : :obj:`np.ndarray`
-        Value (lenght of rays in grid cells)
+        Value (length of rays in grid cells)
 
     """
-    # Define indices of source and parametric straigh ray
+    # Define indices of source and parametric straight ray
     xray, zray = s[0], s[1]
     m = (r[1] - s[1]) / (r[0] - s[0])
     q = s[1] - m * s[0]
@@ -105,6 +105,7 @@ def _raytrace_generic(s, r, dx, dz, ox, oz, nx, nz, x, z):
     R = np.zeros(nx * nz)
     c, v = np.zeros(3 * (nx + nz)), np.zeros(3 * (nx + nz))
     ic = 0
+
     while xray < r[0]:
         # find grid points of source
         ix, iz = int((xray + dx / 2 - x[0]) / dx), int(
@@ -112,12 +113,15 @@ def _raytrace_generic(s, r, dx, dz, ox, oz, nx, nz, x, z):
         # computing z intersecting x-edge of the grid point
         xedge = x[ix] + dx / 2
         zedge = xedge * m + q
+        # in case the ray finished its trajectory, stop iterations
+        if xedge == xray:
+            break
         if xedge > r[0]:
             xedge = r[0]
             zedge = r[1]
         izedge = int((zedge + dz / 2 - z[0]) / dz)
         if izedge == iz:
-            # find lenght of ray from x to x-edge
+            # find length of ray from x to x-edge
             rray = sqrt((xedge - xray) ** 2 + (zedge - zray) ** 2)
             R[ix * nz + iz] = rray
             c[ic], v[ic] = ix * nz + iz, rray
@@ -161,7 +165,7 @@ def _raytrace_generic(s, r, dx, dz, ox, oz, nx, nz, x, z):
 def raytrace_straight(s, r, dx, dz, ox, oz, nx, nz, x, z):
     """Raytrace
 
-    Compute straigth ray between two points and associated tomographic matrix
+    Compute straight ray between two points and associated tomographic matrix.
 
     Parameters
     ----------
@@ -217,7 +221,7 @@ def raytrace_straight(s, r, dx, dz, ox, oz, nx, nz, x, z):
         return _raytrace_generic(r, s, dx, dz, ox, oz, nx, nz, x, z)
 
     
-def tomographic_matrix(survey, dx, dz, ox, oz, nx, nz, x, z, 
+def tomographic_matrix(survey, dx, dz, ox, oz, nx, nz, x, z,
                        debug=False, plotflag=False, vel=None, figsize=(15, 3)):
     """Tomographich matrix
 
@@ -259,7 +263,7 @@ def tomographic_matrix(survey, dx, dz, ox, oz, nx, nz, x, z,
     cols = []
     v = []
     for iray, ray in enumerate(survey):
-        R_ = [raytrace_straight(ray.ray[i], ray.ray[i+1], dx, dz, 0., 0., nx, nz, x, z)[1:]
+        R_ = [raytrace_straight(ray.ray[i], ray.ray[i+1], dx, dz, ox, oz, nx, nz, x, z)[1:]
               for i in range(ray.ray.shape[0]-1)]
         ctmp, vtmp = np.hstack([r[0] for r in R_]), np.hstack([r[1] for r in R_])
         #R.append(np.sum([r[0] for r in R_], axis=0))
