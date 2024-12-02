@@ -11,7 +11,7 @@ from refrtomo.tomomatrix import *
 
 class RefrTomo:
     def __init__(self, survey, surveydata, x, z, lmax, nl, thetas, 
-                 dzout=1., ray_rec_mindistance=1., epsL=1., weightsL=(1, 1),
+                 dzout=1., ray_rec_mindistance=1., tolerance_z=1., epsL=1., weightsL=(1, 1),
                  returnJ=False, debug=False):
         self.survey, self.surveydata = survey, surveydata
         self.x, self.z = x, z
@@ -20,6 +20,7 @@ class RefrTomo:
         self.thetas = thetas
         self.dzout = dzout
         self.ray_rec_mindistance = ray_rec_mindistance
+        self.tolerance_z = tolerance_z
         self.returnJ = returnJ
         self.debug = debug
 
@@ -54,10 +55,14 @@ class RefrTomo:
         # Raytrace in velocity model
         invsurvey = survey_raytrace(self.survey, vel.T, self.x, self.z, self.lmax, self.nl, 
                                     self.thetas, dzout=self.dzout, 
-                                    ray_rec_mindistance=self.ray_rec_mindistance, debug=self.debug)
+                                    ray_rec_mindistance=self.ray_rec_mindistance, 
+                                    tolerance_z=self.tolerance_z, debug=self.debug)
 
         # Match surveys
         surveydata_matched, invsurvey_matched = match_surveys(self.surveydata, invsurvey, debug=self.debug)
+        
+        self.surveydata_matched = surveydata_matched
+        self.invsurvey_matched = invsurvey_matched
         
         # Tomographic matrix and traveltimes
         Rinv = tomographic_matrix(invsurvey_matched, self.dx, self.dz, 0, 0, self.nx, self.nz, 
@@ -110,10 +115,10 @@ class RefrTomo:
             
             return Rinv
         
-    def solve(self, v0, niter, lsqr_args={}):
+    def solve(self, v0, niter, damp, lsqr_args={}):
         s0 = 1./v0.ravel()
         tin = time.time()
-        sinv, misfit = gauss_newton(self.fun, s0, niter, lsqr_args=lsqr_args)
+        sinv, misfit = gauss_newton(self.fun, s0, niter, damp, lsqr_args=lsqr_args)
         tend = time.time()
         vinv= 1. / (sinv.reshape(self.dims) + 1e-10)
         print(f'Elapsed time: {tend-tin} sec')

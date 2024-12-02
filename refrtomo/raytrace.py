@@ -42,7 +42,7 @@ def rhsf(l, r, slowness, dsdx, dsdz, xaxis, zaxis, dx, dz):
     zz = min([zz, m-1])
     zz = max([zz, 1]) 
 
-    # extract s, ds/dx, ds/dz at current position (nearest-neighbour interpolation)
+    # extract s, ds/dx, ds/dz at current position (nearest-neighbor interpolation)
     s = slowness[round(zz), round(xx)]
     dsdx = dsdx[round(zz), round(xx)]
     dsdz = dsdz[round(zz), round(xx)]
@@ -64,15 +64,15 @@ def raytrace(vel, xaxis, zaxis, dx, dz, lmax, nl, source, thetas, dzout=1., debu
     vel : np.ndarray
         2D Velocity model (nz x nx)
     xaxis : np.ndarray
-        Horizonal axis 
+        Horizontal axis 
     zaxis : np.ndarray
         Vertical axis 
     dx : float
-        Horizonal spacing 
+        Horizontal spacing 
     dz : float
         Vertical spacing 
     lmax : float
-        Max lenght of ray
+        Max length of ray
     nl : int
         Number of steps of ray
     source : tuple

@@ -277,6 +277,7 @@ def tomographic_matrix(survey, dx, dz, ox, oz, nx, nz, x, z,
     if plotflag:
         plt.figure(figsize=figsize)
         plt.imshow(vel.T, cmap='jet', extent =(x[0], x[-1], z[-1], z[0]))
+        plt.colorbar()
 
         for ray in survey:
             plt.plot(ray.ray[:,0], ray.ray[:,1], 'w')
@@ -287,6 +288,8 @@ def tomographic_matrix(survey, dx, dz, ox, oz, nx, nz, x, z,
         Rcove = np.sum(R.toarray(), axis=0).reshape(nx, nz).T
         plt.figure(figsize=figsize)
         plt.imshow(Rcove, vmin=0, vmax=0.1*Rcove.max(), extent=(x[0], x[-1], z[-1], z[0]))
+        # Show the colorbar
+        plt.colorbar()
         plt.axis('tight')
         plt.title('Ray coverage')
     
