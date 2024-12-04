@@ -2,6 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import namedtuple
 from refrtomo.raytrace import *
+import cupy as cp
+from joblib import Parallel, delayed
 
 Ray = namedtuple('Ray', ['src', 'rec', 'tobs', 'ray'])
 
@@ -21,6 +23,70 @@ def survey_geom_observed(srcs, recs, tobs, minoffset=0):
             if np.abs(s[0]-r[0]) > minoffset and not np.isnan(tobs[isrc, irec]):
                 survey.append(Ray(s, r, tobs=tobs[isrc, irec], ray=None)) 
     return survey
+
+
+def survey_raytrace_optimized(
+        survey, vel, x, z, lmax, nl, thetas, dzout=0.1, ray_rec_mindistance=1.0, debug=False, tolerance_z=1.0
+):
+    dx, dz = x[1] - x[0], z[1] - z[0]
+
+    def process_source(s):
+        src = s.src
+        # Raytrace
+        rays, rays_turning, thetas_turning = raytrace(
+            vel, x, z, dx, dz, lmax, nl, src, thetas, dzout=.1, debug=False
+        )
+        matched_rays = []
+        for rec in s.rec.T:
+            if rec[1] == 0:
+                # Receiver at z=0
+                rays_endx = np.array([ray[-1, 0] for ray in rays_turning])
+                if rays_endx.size == 0:
+                    if debug:
+                        print(f"No valid rays found for receiver at {rec}.")
+                    continue
+                iray = np.argmin(np.abs(rays_endx - rec[0]))
+                ray_rec_distance = rays_endx[iray] - rec[0]
+                if np.abs(ray_rec_distance) < ray_rec_mindistance:
+                    matched_rays.append(
+                        Ray(src, rec, tobs=rays_turning[iray][-1, -1], ray=rays_turning[iray][:, :2])
+                    )
+            else:
+                # Receiver not at z=0
+                ray_trunc = []
+                for ray in rays_turning:
+                    z_rec_ray = np.abs(ray[:, 1] - rec[1]) <= tolerance_z
+                    if len(np.where(z_rec_ray)[0]) > 0:
+                        ray_trunc_idx = np.where(z_rec_ray)[0][-1]
+                        ray_trunc.append(ray[:ray_trunc_idx + 1, :])
+
+                rays_endx = np.array([ray[-1, 0] for ray in ray_trunc])
+                if rays_endx.size == 0:
+                    if debug:
+                        print(f"No valid rays found for receiver at {rec}.")
+                    continue
+                iray = np.argmin(np.abs(rays_endx - rec[0]))
+                ray_rec_distance = rays_endx[iray] - rec[0]
+                if np.abs(ray_rec_distance) < ray_rec_mindistance:
+                    matched_rays.append(
+                        Ray(src, rec, tobs=ray_trunc[iray][-1, -1], ray=ray_trunc[iray][:, :2])
+                    )
+        return matched_rays
+
+    # Parallel processing for each source
+    avasurvey_results = Parallel(n_jobs=-1)(
+        delayed(process_source)(s) for s in survey
+    )
+
+    # Flatten the results
+    avasurvey = [ray for sublist in avasurvey_results for ray in sublist]
+
+    if debug:
+        nsr = np.sum([s.rec.shape[1] for s in survey])
+        print(
+            f"survey_raytrace_optimized: {nsr} Source-receiver pairs in survey, {len(avasurvey)} Source-receiver paired with ray..."
+        )
+    return avasurvey
 
 
 def survey_raytrace(survey, vel, x, z, lmax, nl, thetas, dzout=.1, ray_rec_mindistance=1., debug=False, tolerance_z=1.):
