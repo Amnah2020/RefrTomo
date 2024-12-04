@@ -48,6 +48,9 @@ def survey_raytrace(survey, vel, x, z, lmax, nl, thetas, dzout=.1, ray_rec_mindi
                         ray_trunc.append(ray[:ray_trunc_idx + 1, :])
 
                 rays_endx = np.array([ray[-1, 0] for ray in ray_trunc])
+                if len(rays_endx) == 0:
+                    print("No valid rays found for this source-receiver pair.")
+                    continue
                 iray = np.argmin(np.abs(rays_endx - rec[0]))
                 ray_rec_distance = rays_endx[iray] - rec[0]
                 if np.abs(ray_rec_distance) < ray_rec_mindistance:
