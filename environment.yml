@@ -13,9 +13,12 @@ dependencies:
   - jupyter
   - ipython
   - tqdm
+  - cupy
+  - joblib
   - pip:
     - devito
     - scikit-fmm
     - spgl1
     - pytest-runner
     - setuptools_scm
+    - segyio
