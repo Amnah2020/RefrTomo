@@ -151,8 +151,8 @@ plt.show()
 
 Robs = tomographic_matrix(avasurvey, dx, dz, 0, 0, nx, nz, x, z, plotflag=False, vel=vel_smooth)
 
-tobs = extract_tobs(avasurvey)
-tobs_R = Robs @ (1/vel_smooth.ravel())
+tobs_acutal = extract_tobs(avasurvey)
+tobs_acutal_R = Robs @ (1/vel_smooth.ravel())
 
 
 plt.figure()
@@ -170,8 +170,8 @@ plt.title('Smoothed velocity and Ray coverage')
 plt.show()
 
 plt.figure(figsize=(15, 3))
-plt.plot(tobs, 'r', label= "Acutal picks")
-plt.plot(tobs_R, 'k', label = "R picks")
+plt.plot(tobs_acutal, 'r', label= "Acutal picks")
+plt.plot(tobs_acutal_R, 'k', label = "R picks")
 plt.legend()
 plt.show()
 
@@ -190,6 +190,10 @@ Rinit = tomographic_matrix(initsurvey_matched, dx, dz, 0, 0, nx, nz, x, z,
 tobs = extract_tobs(avasurvey_matched)
 tobs_init = extract_tobs(initsurvey_matched)
 tinit = Rinit @ (1/vel_initial.ravel())
+
+# I need to use this for the preconditioned inversion .. I am not sure where I rewrote the variable
+initial_Rinit = Rinit.copy()
+initial_tobs_init = tobs_init.copy()
 
 plt.figure(figsize=(15, 3))
 plt.plot(tobs, 'r', label = 'Smoothed')
@@ -400,10 +404,10 @@ plt.show()
 
 #%% comparison
 
-# Comparison of Travel Times (tinv) from Each Method
+
 
 plt.figure(figsize=(15, 5))
-plt.plot(tobs, 'k', label='Observed Travel Times')
+plt.plot(tobs_acutal, 'k', label='Observed Travel Times')
 plt.plot(tinv_regularized, '--r', label='Regularized')
 plt.plot(tinv_gauss_newton_1, '--g', label='Gauss-Newton (1st)')
 plt.plot(tinv_gauss_newton_2, '--p', label='Gauss-Newton (2nd)')
@@ -457,13 +461,16 @@ plt.show()
 
 #%% Diagonal Preconditioner
 
+from pylops import Diagonal
+
 diag_P = (Rinit.T @ Rinit).diagonal()
-diag_P = np.diag(diag_P)
+# diag_P = np.diag(diag_P)
+# P = 1 / (diag_P + 1e-10)
+# Create a Diagonal operator for the preconditioner
+P_operator = Diagonal(diag=1 / (diag_P + 1e-10))
 
-P = 1 / (diag_P + 1e-10)
-
-slowninv_preconditioned = preconditioned_inversion(MatrixMult(Rinit),
-                                                   tobs, P, show=True,
+slowninv_preconditioned = preconditioned_inversion(MatrixMult(initial_Rinit),
+                                                   initial_tobs_init, P_operator, show=True,
                                                    x0=1. / vel_initial.ravel(),
                                                    **dict(iter_lim=100, damp=1e-1))[0]
 vel_preconditioned = 1. / (slowninv_preconditioned.reshape(nx, nz) + 1e-10)
@@ -474,6 +481,7 @@ im = plt.imshow(vel_preconditioned.T, cmap='jet', vmin=1800, vmax=3000, extent=(
 plt.scatter(r[0], r[1], marker='v', s=150, c='b', edgecolors='k')
 plt.scatter(s[0], s[1], marker='*', s=150, c='r', edgecolors='k')
 plt.colorbar(im)
+plt.axis('tight')
 plt.title('Preconditioned Velocity')
 plt.show()
 
