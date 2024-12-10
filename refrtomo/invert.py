@@ -66,13 +66,15 @@ class RefrTomo:
         # Tomographic matrix and traveltimes
         Rinv = tomographic_matrix(invsurvey_matched, self.dx, self.dz, 0, 0, self.nx, self.nz, 
                                   self.x, self.z, debug=self.debug, plotflag=self.debug, vel=vel)
+
+        self.Rinv = Rinv
+                            
         tobs = extract_tobs(surveydata_matched)
 
         self.tobs = tobs
         
         # Add smoothing regularization term
         Rinv = VStack([MatrixMult(Rinv), self.epsL * self.Lop])
-        self.Rinvold = Rinv
         
         # Add smoothing regularization term
         ntobs = len(tobs)
