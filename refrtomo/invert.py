@@ -8,7 +8,6 @@ from refrtomo.raytrace import raytrace
 from refrtomo.survey import *
 from refrtomo.tomomatrix import *
 
-
 class RefrTomo:
     def __init__(self, survey, surveydata, x, z, lmax, nl, thetas, 
                  dzout=1., ray_rec_mindistance=1., tolerance_z=1., epsL=1., weightsL=(1, 1),
@@ -68,6 +67,8 @@ class RefrTomo:
         Rinv = tomographic_matrix(invsurvey_matched, self.dx, self.dz, 0, 0, self.nx, self.nz, 
                                   self.x, self.z, debug=self.debug, plotflag=self.debug, vel=vel)
         tobs = extract_tobs(surveydata_matched)
+
+        self.tobs = tobs
         
         # Add smoothing regularization term
         Rinv = VStack([MatrixMult(Rinv), self.epsL * self.Lop])
@@ -77,6 +78,9 @@ class RefrTomo:
         ntobs = len(tobs)
         tobs = np.pad(tobs, (0, self.nx*self.nz))
         tinv = Rinv @ x
+
+        self.tinv = tinv[:ntobs]
+
         if self.debug: 
             tend = time.time()
             print(f'RefrTomo-fun: Misfit {np.linalg.norm(tobs[:ntobs] - tinv[:ntobs]) / ntobs:.4f}')

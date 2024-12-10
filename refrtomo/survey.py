@@ -26,7 +26,7 @@ def survey_geom_observed(srcs, recs, tobs, minoffset=0):
 
 
 def survey_raytrace_optimized(
-        survey, vel, x, z, lmax, nl, thetas, dzout=0.1, ray_rec_mindistance=1.0, debug=False, tolerance_z=1.0
+        survey, vel, x, z, lmax, nl, thetas, dzout=0.1, ray_rec_mindistance=1.0, debug=False, tolerance_z=1.0, match_direct=False
 ):
     dx, dz = x[1] - x[0], z[1] - z[0]
 
@@ -36,7 +36,17 @@ def survey_raytrace_optimized(
         rays, rays_turning, thetas_turning = raytrace(
             vel, x, z, dx, dz, lmax, nl, src, thetas, dzout=.1, debug=False
         )
+        # In case we want to do direct rays as in crosshole
         matched_rays = []
+        if match_direct:
+            for rec in s.rec.T:
+                for ray in rays:
+                    if np.allclose(ray[-1, :2], rec, atol=ray_rec_mindistance):
+                        matched_rays.append(
+                            Ray(src, rec, tobs=ray[-1, -1], ray=ray[:, :2])
+                        )
+            return matched_rays
+
         for rec in s.rec.T:
             if rec[1] == 0:
                 # Receiver at z=0
@@ -89,7 +99,7 @@ def survey_raytrace_optimized(
     return avasurvey
 
 
-def survey_raytrace(survey, vel, x, z, lmax, nl, thetas, dzout=.1, ray_rec_mindistance=1., debug=False, tolerance_z=1.):
+def survey_raytrace(survey, vel, x, z, lmax, nl, thetas, dzout=.1, ray_rec_mindistance=1., debug=False, tolerance_z=1., match_direct=False):
     dx, dz = x[1] - x[0], z[1] - z[0]
     
     avasurvey = []
@@ -97,6 +107,16 @@ def survey_raytrace(survey, vel, x, z, lmax, nl, thetas, dzout=.1, ray_rec_mindi
         src = s.src
         # Raytrace
         rays, rays_turning, thetas_turning = raytrace(vel, x, z, dx, dz, lmax, nl, src, thetas, dzout=.1, debug=False)
+
+        # In case we want to do direct rays as in crosshole
+        if match_direct:
+            for rec in s.rec.T:
+                rays_endx = np.array([ray[-1, 0] for ray in rays])
+                iray = np.argmin(np.abs(rays_endx - rec[0]))
+                ray_rec_distance = rays_endx[iray] - rec[0]
+                if np.abs(ray_rec_distance) < ray_rec_mindistance:
+                    avasurvey.append(Ray(src, rec, tobs=rays[iray][-1, -1], ray=rays[iray][:, :2]))
+            return avasurvey
 
         for rec in s.rec.T:
             if rec[1] == 0:
